@@ -6,18 +6,13 @@ import srb.akikrasic.podaci.HederIVrednost
 import srb.akikrasic.ucitavanjezahtevaiodgovora.Zahtev
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.awt.HeadlessException
-import java.awt.Insets
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import javax.swing.*
-
 
 
 class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()) : JPanel(){
