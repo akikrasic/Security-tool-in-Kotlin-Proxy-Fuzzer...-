@@ -14,13 +14,14 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import javax.swing.*
 
-class HttpKomunikacijaPanel(val forma: Forma) : JPanel() {
+class HttpKomunikacijaPanel(val forma: Forma) : MojPanel() {
     val unosTeksta = UnosTekstaZaPretraguPanel(this)
     val tabela = JTable()
     val areaZahtev = JTextArea()
     val areaOdgovor = JTextArea()
     val tabbedPane = JTabbedPane()
     val modelTabele = ModelTabele()
+
 
 
     init{

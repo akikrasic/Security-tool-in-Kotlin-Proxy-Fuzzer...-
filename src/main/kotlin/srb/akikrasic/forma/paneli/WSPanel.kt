@@ -14,7 +14,7 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import javax.swing.*
 
-class WSPanel : JPanel() {
+class WSPanel : MojPanel() {
 
     val listaKonekcija = JList<String>()
     val tabelaPoruka = JTable()

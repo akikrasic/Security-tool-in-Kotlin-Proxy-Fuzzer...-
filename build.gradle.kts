@@ -28,7 +28,7 @@ dependencies {
     implementation(platform("com.squareup.okhttp3:okhttp-bom:5.3.0"))
     // define any required OkHttp artifacts without version
     implementation("com.squareup.okhttp3:okhttp")
-
+    implementation("com.google.code.gson:gson:2.13.2")
 
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")

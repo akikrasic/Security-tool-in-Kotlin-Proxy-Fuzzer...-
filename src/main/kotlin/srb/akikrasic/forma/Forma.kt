@@ -5,6 +5,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import srb.akikrasic.forma.paneli.HttpKomunikacijaPanel
+import srb.akikrasic.forma.paneli.MojPanel
+import srb.akikrasic.forma.paneli.MojPonavljacPanel
 import srb.akikrasic.forma.paneli.MojeSlanjeZahtevaPanel
 import srb.akikrasic.forma.paneli.PrenosInformacijaZaPretragu
 import srb.akikrasic.forma.paneli.WSPanel
@@ -13,6 +15,8 @@ import srb.akikrasic.komunikacija.KomunikacijaPodaci
 import srb.akikrasic.ucitavanjeWebSocketa.WebSoketPoruka
 import srb.akikrasic.ucitavanjezahtevaiodgovora.Zahtev
 import java.awt.GridBagLayout
+import java.awt.event.WindowEvent
+import java.awt.event.WindowListener
 import java.util.concurrent.Executors
 import javax.swing.*
 
@@ -21,6 +25,7 @@ class Forma : JFrame() {
     var httpKomunikacijaPanel = HttpKomunikacijaPanel(this)
 
     var wsPanel = WSPanel()
+    var mojTrenutniPanel = MojPanel()
 
     fun osnovneOperacije() {
         this.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -50,26 +55,60 @@ class Forma : JFrame() {
         val httpMeni = JMenuItem("Хттп саобраћај")
         val wsMeni = JMenuItem("Веб сокит")
         val mojeSlanjeZahteva = JMenuItem("Моје слање захтева")
-        glavniMeni.add(httpMeni)
-        glavniMeni.add(wsMeni)
-        glavniMeni.add(mojeSlanjeZahteva)
+        val mojPonavljac  = JMenuItem("Мој понављач")
         bar.add(glavniMeni)
-        httpMeni.addActionListener{
-            httpKomunikacijaPanel = HttpKomunikacijaPanel(this)
-            this.contentPane = httpKomunikacijaPanel
-            osveziteFormu()
+        dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni, httpMeni){
+            HttpKomunikacijaPanel(this)
         }
-        wsMeni.addActionListener{
-            wsPanel = WSPanel()
-            this.contentPane = wsPanel
+        dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni, wsMeni){
+            WSPanel()
+        }
 
-            osveziteFormu()
+        dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni, mojeSlanjeZahteva){
+            MojeSlanjeZahtevaPanel()
         }
-        mojeSlanjeZahteva.addActionListener{
-            this.contentPane = MojeSlanjeZahtevaPanel()
-            osveziteFormu()
+        dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni, mojPonavljac){
+            MojPonavljacPanel(this)
         }
         this.jMenuBar = bar
+
+        this.addWindowListener(object: WindowListener {
+            override fun windowOpened(e: WindowEvent?) {
+
+            }
+
+            override fun windowClosing(e: WindowEvent?) {
+                mojTrenutniPanel.ugasilaSeForma()
+            }
+            override fun windowClosed(e: WindowEvent?) {
+
+            }
+
+            override fun windowIconified(e: WindowEvent?) {
+
+            }
+
+            override fun windowDeiconified(e: WindowEvent?) {
+
+            }
+
+            override fun windowActivated(e: WindowEvent?) {
+
+            }
+
+            override fun windowDeactivated(e: WindowEvent?) {
+
+            }
+        })
+
+    }
+    fun dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni:JMenu, menuItem: JMenuItem, fja:()-> MojPanel){
+        glavniMeni.add(menuItem)
+        menuItem.addActionListener {
+            mojTrenutniPanel = fja()
+            this.contentPane = mojTrenutniPanel
+            osveziteFormu()
+        }
 
     }
     fun osveziteFormu(){

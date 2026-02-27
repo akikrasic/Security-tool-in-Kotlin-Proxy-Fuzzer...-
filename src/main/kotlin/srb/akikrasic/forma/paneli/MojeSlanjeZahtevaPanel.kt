@@ -3,19 +3,20 @@ package srb.akikrasic.forma.paneli
 import srb.akikrasic.forma.modelitabele.ModelTabeleHederi
 import srb.akikrasic.korisno.GuiKorisno
 import srb.akikrasic.podaci.HederIVrednost
+import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciPojedinacniPanel
+import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciZaUcitavanjeNaPanele
+import srb.akikrasic.slanjehttpzahteva.SlanjeHttpZahteva
 import srb.akikrasic.ucitavanjezahtevaiodgovora.Zahtev
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import javax.swing.*
+import javax.swing.event.AncestorEvent
+import javax.swing.event.AncestorListener
 
 
-class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()) : JPanel(){
+open class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()) : MojPanel(){
 
 
     val metodaKombo = JComboBox<String>()
@@ -27,18 +28,36 @@ class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()
 
     val modelTabeleHederi = ModelTabeleHederi()
 
-    val mapaBilderi = mutableMapOf<String, ()->HttpRequest.Builder> ("GET" to this::get, "POST" to this::post,
-        "PUT" to this::put, "DELETE" to this::delete)
 
-    val zabranjeniHederi = setOf("Host", "Content-Length", "Connection", "")
+     fun izvucitePodatke() = PodaciPojedinacniPanel(
+        vratiteUrl(),
+        metodaKombo.selectedItem?.toString() ?: "",
+        vratiteHedere(),
+        vratiteTeloZahteva()
+    )
 
-    fun get(): HttpRequest.Builder = HttpRequest.newBuilder().GET()
-    fun post(): HttpRequest.Builder = HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString(zahtevTeloArea.text.trim()))
-    fun put(): HttpRequest.Builder = HttpRequest.newBuilder().PUT(HttpRequest.BodyPublishers.ofString(zahtevTeloArea.text.trim()))
-    fun delete(): HttpRequest.Builder = HttpRequest.newBuilder().DELETE()
-
+    val slanjeZahteva = SlanjeHttpZahteva()
 
     init{
+        rasporedjivanjePanela()
+        dodajteListenerZaUklanjanjePanela()
+        ucitajtePodatkeUFormu()
+    }
+
+    fun dodajteListenerZaUklanjanjePanela(){
+        this.addAncestorListener(object: AncestorListener{
+            override fun ancestorAdded(event: AncestorEvent?) {
+            }
+            override fun ancestorRemoved(event: AncestorEvent?) {
+                sacuvajtePodatke()
+            }
+
+            override fun ancestorMoved(event: AncestorEvent?) {
+            }
+        })
+    }
+
+    open fun rasporedjivanjePanela(){
         listOf("GET", "POST", "PUT", "DELETE").forEach {
             metodaKombo.addItem(it)
         }
@@ -70,7 +89,7 @@ class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()
         add(JScrollPane(odgovorSveArea), c)
 
         dugmePosaljite.addActionListener {
-            posaljite()
+            posaljiteDugmeAkcija()
         }
         tabelaHederi.model = modelTabeleHederi
 
@@ -111,35 +130,46 @@ class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zahtev()
         ogranicenjaZaPanel.gridx =1
         ogranicenjaZaPanel.weightx = 0.7
         panelGore.add(urlPolje,ogranicenjaZaPanel)
+        panelGoreDonjiDeo(panelGore,ogranicenjaZaPanel)
+        return panelGore
+    }
 
+    open fun panelGoreDonjiDeo(panelGore:JPanel, ogranicenjaZaPanel: GridBagConstraints){
         ogranicenjaZaPanel.gridy = 1
         ogranicenjaZaPanel.fill = GridBagConstraints.NONE
         panelGore.add(dugmePosaljite, ogranicenjaZaPanel)
-        return panelGore
     }
-    fun posaljite(){
-        val client = HttpClient.newHttpClient()
-        val requestBuilder = mapaBilderi[metodaKombo.selectedItem]!!()
-            .uri(URI.create(urlPolje.text.trim()))
-        modelTabeleHederi.lista.filter{!(it.headerNaziv in zabranjeniHederi)}.forEach{
-            requestBuilder.header(it.headerNaziv, it.headerVrednost)
+
+    open fun posaljiteDugmeAkcija(){
+            posaljiteZahtev()
+    }
+
+    open fun posaljiteZahtev(){
+        odgovorSveArea.text = slanjeZahteva.slanjeZahteva(vratiteUrl(), metodaKombo.selectedItem?.toString()?:"", vratiteHedere(),vratiteTeloZahteva())
+    }
+
+
+
+    fun vratiteTeloZahteva()=obradaStringa( obradaStringa(zahtevTeloArea.text))
+    fun vratiteUrl() = obradaStringa(urlPolje.text)
+    fun vratiteHedere() = modelTabeleHederi.lista.map{ HederIVrednost(obradaStringa(it.headerNaziv), obradaStringa(it.headerVrednost)) }.toMutableList()
+    open fun obradaStringa(s:String) = s.trim()
+
+
+    override fun sacuvajtePodatke() {
+        PodaciZaUcitavanjeNaPanele.postaviteMojeSlanjeZahtevaPanel(izvucitePodatke())
+    }
+
+    override fun ucitajtePodatkeUFormu() {
+        val podaci = vratitePodatkeZaUcitavanjeUFormu()
+        SwingUtilities.invokeLater {
+            this.modelTabeleHederi.lista.clear()
+            modelTabeleHederi.lista.addAll(podaci.hederi)
+            //TODO dodaj jos jedan heder ako treba
+            urlPolje.text = podaci.url
+            zahtevTeloArea.text = podaci.telo
+            metodaKombo.selectedItem = podaci.metoda
         }
-
-        val response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
-        odgovorSveArea.text = obradaOdgovora(response)
-
     }
-
-    fun obradaOdgovora(response:HttpResponse<String?>) = """
-        ${response.headers().map().map { 
-            " ${it.key}: ${it.value}"
-        }.joinToString("\n")}
-        
-        ${response.body()}
-        
-        """.trimIndent()
-
-
-
 
 }
