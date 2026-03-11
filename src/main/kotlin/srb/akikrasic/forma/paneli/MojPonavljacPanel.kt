@@ -162,7 +162,7 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
                 }
             val teloZamenjeno = zamenite(telo, poruka)
             val rezultat = posaljiteZahtevIVratiteRezultat(urlZamenjeni, metoda, hederiZamenjeni, teloZamenjeno, poruka)
-            proveraDaLiJeNeuspesan(url, hederi, telo, rezultat)
+            proveraDaLiJeNeuspesan(urlZamenjeni, hederiZamenjeni, teloZamenjeno, rezultat)
             proveraDaLiJeUspesan(rezultat, poruka)
 
         }
