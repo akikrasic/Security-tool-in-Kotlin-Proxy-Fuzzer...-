@@ -203,7 +203,7 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
                 ensureActive()
                 //86000 za 100k
                 //363000 za veliki
-                    if(brojacZaPocetak.get()>1100) {//86000
+                    if(brojacZaPocetak.get()>8000) {//86000
 //                        println("Upaljen ti je brojac i krece od : ${brojacZaPocetak.get()}")
                 ioOpseg.launch { posaljitePorukuNaRedZaCitanje(it) }
                     }
@@ -227,7 +227,8 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
         var rezultat = "503"
         while( rezultat.contains("503")){
             if(rezultat!="503"){
-                println("503 rezultat idemo da ponovimo poruku $poruka")
+                println("503 rezultat po ${brojac503.incrementAndGet()}. put  idemo da ponovimo poruku $poruka")
+
             }
             rezultat = slanjeZahteva.slanjeZahteva(
                 urlZamenjeni,
