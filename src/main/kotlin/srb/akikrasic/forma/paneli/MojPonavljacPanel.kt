@@ -7,11 +7,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import srb.akikrasic.forma.Forma
-import srb.akikrasic.forma.modelitabele.ModelTabeleHederi
 import srb.akikrasic.komunikacija.Komunikacija
 import srb.akikrasic.podaci.HederIVrednost
-import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciPojedinacniPanel
 import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciZaUcitavanjeNaPanele
+import srb.akikrasic.ucitavanjezahtevaiodgovora.konstante.HederiNazivi
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
@@ -122,73 +121,99 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     fun zapocniteSlanje(){
 
         if(fajlNijePrazan()) {
-            odgovorSveArea.text=""
+            zapocniteSlanjeOsveziteFormu()
             pokrenutKontekst = true
-            dugmePosaljite.text = "Зауставите"
-            val treciJob = treciOpseg.launch {
+            pokreniteUcitavanjeIzFajla()
+            pokreniteCitanjeIzRedaiSlanje()
+
+        }
+    }
+    fun zapocniteSlanjeOsveziteFormu(){
+        odgovorSveArea.text=""
+        dugmePosaljite.text = "Зауставите"
+    }
+
+    fun pokreniteCitanjeIzRedaiSlanje(){
+        val url = vratiteUrl()
+        val metoda = metodaKombo.selectedItem?.toString()?:""
+        val hederi = vratiteHedere()
+        val telo = vratiteTeloZahteva()
+        drugiOpseg.launch {
+            while (true) {
                 ensureActive()
-                val brojacZaPocetak = AtomicInteger()
-                odabraniFajl.forEachLine {
-                    ensureActive()
-                    //86000 za 100k
-                    //363000 za veliki
-//                    if(brojacZaPocetak.get()>86000) {
-//                        println("Upaljen ti je brojac i krece od : ${brojacZaPocetak.get()}")
-                        ioOpseg.launch { posaljitePoruku(it) }
-//                    }
-                    brojacZaPocetak.incrementAndGet()
+                val poruka = Komunikacija.kanalZaKomunikacijuMojPonavljac.receive()
+                 posaljitePorukuPutemHttpaIObraditeRezultat(url, metoda, hederi, telo, poruka)
+                //}
+
+            }
+        }
+    }
+
+     fun posaljitePorukuPutemHttpaIObraditeRezultat(url:String, metoda:String, hederi:List<HederIVrednost>, telo:String, poruka:String){
+        ioOpseg.launch { //radelo je s treciOpseg
+            println("${brojac.addAndGet(1)}. ${poruka}")
+            val urlZamenjeni = zamenite(url, poruka)
+            val hederiZamenjeni =  hederi.filter{it.headerNaziv!=""}
+                .map { HederIVrednost(
+                    zamenite(it.headerNaziv, poruka),
+                    zamenite(it.headerVrednost, poruka)
+                )
 
                 }
-            }
-            val url = vratiteUrl()
-            val metoda = metodaKombo.selectedItem?.toString()?:""
-            val hederi = vratiteHedere()
-            val telo = vratiteTeloZahteva()
+            val teloZamenjeno = zamenite(telo, poruka)
+            val rezultat = posaljiteZahtevIVratiteRezultat(urlZamenjeni, metoda, hederiZamenjeni, teloZamenjeno, poruka)
+            proveraDaLiJeNeuspesan(url, hederi, telo, rezultat)
+            proveraDaLiJeUspesan(rezultat, poruka)
 
+        }
+    }
 
-             //   repeat(5) {
-            drugiOpseg.launch {
-                while (true) {
-                    ensureActive()
-                    val poruka = Komunikacija.kanalZaKomunikacijuMojPonavljac.receive()
-                    treciOpseg.launch {
-                        println("$url ${zamenite(telo, poruka)}")
-                        val rezultat = posaljiteZahtevIVratiteRezultat(url, metoda, hederi, telo, poruka)
-
-                        if( rezultat.contains("401")) {
-                            println(
-                                """
-                            ${zamenite(url, poruka)}
-                            $hederi
-                            ${zamenite(telo, poruka)}
-                            
+    fun proveraDaLiJeNeuspesan(urlZamenjeni: String, hederiZamenjeni: List<HederIVrednost>, teloZamenjeno: String, rezultat:String){
+        if( rezultat.contains("401")) {
+            println(
+                """
+                            ${urlZamenjeni}
+                            ${hederiZamenjeni}
+                            ${teloZamenjeno}
+                           
                             Rezultat: 
                             $rezultat
-                            
+                           
                         """.trimIndent()
-                            )
-                        }
-                        println("${brojac.addAndGet(1)}. ${poruka}")
-                        // SwingUtilities.invokeLater {
-                        drugiOpseg.launch{
-                            if( rezultat.contains("200")||rezultat.contains("201")|| rezultat.contains("FLAG")) {
-                                odgovorSveArea.append("успешно је прошао: $poruka  а резултат је: \n   $rezultat\n")
-                                println(rezultat)
-                                println("Шифра је ${poruka}")
-                                //System.exit(0)
-                                ugasiteSveIInicijalizujte()
+            )
+        }
+    }
+    fun proveraDaLiJeUspesan(rezultat:String, poruka:String){
+        if( rezultat.contains("200")||rezultat.contains("201")|| rezultat.contains("FLAG")) {
+            println("PRONADJEN JE ${poruka}")
+            drugiOpseg.launch{
+                odgovorSveArea.append("успешно је прошао: $poruka  а резултат је: \n   $rezultat\n")
+                println(rezultat)
+                println("Шифра је ${poruka}")
+                //System.exit(0)
+                ugasiteSveIInicijalizujte()
 
-                            }}
+            }}
+    }
+    fun pokreniteUcitavanjeIzFajla(){
+        treciOpseg.launch {
+            ensureActive()
+            val brojacZaPocetak = AtomicInteger()
+            odabraniFajl.forEachLine {
+                ensureActive()
+                //86000 za 100k
+                //363000 za veliki
+                    if(brojacZaPocetak.get()>1100) {//86000
+//                        println("Upaljen ti je brojac i krece od : ${brojacZaPocetak.get()}")
+                ioOpseg.launch { posaljitePorukuNaRedZaCitanje(it) }
                     }
-                    //}
+                brojacZaPocetak.incrementAndGet()
 
-                }
             }
-//                }//
         }
     }
     fun zamenite(s:String, zaZamenu:String) = s.replace(param,zaZamenu)
-    suspend fun posaljitePoruku(poruka:String){
+    suspend fun posaljitePorukuNaRedZaCitanje(poruka:String){
         Komunikacija.kanalZaKomunikacijuMojPonavljac.send(poruka.trim())
     }
 
@@ -198,23 +223,17 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
 
     override fun vratitePodatkeZaUcitavanjeUFormu() = PodaciZaUcitavanjeNaPanele.podaciSviPaneli.mojPonavljacPanel
 
-    suspend fun posaljiteZahtevIVratiteRezultat(url:String, metoda:String, hederi: MutableList<HederIVrednost>, telo:String, poruka:String):String{
+     fun posaljiteZahtevIVratiteRezultat(urlZamenjeni:String, metoda:String, hederiZamenjeni: List<HederIVrednost>, teloZamenjeno:String, poruka:String):String{
         var rezultat = "503"
         while( rezultat.contains("503")){
             if(rezultat!="503"){
                 println("503 rezultat idemo da ponovimo poruku $poruka")
             }
             rezultat = slanjeZahteva.slanjeZahteva(
-                zamenite(url, poruka),
+                urlZamenjeni,
                 metoda,
-                hederi.filter{it.headerNaziv!=""}
-                    .map { HederIVrednost(
-                        zamenite(it.headerNaziv, poruka),
-                        zamenite(it.headerVrednost, poruka)
-                    )
-
-                    },
-                zamenite(telo, poruka)
+                hederiZamenjeni,
+                teloZamenjeno
             )
         }
 
