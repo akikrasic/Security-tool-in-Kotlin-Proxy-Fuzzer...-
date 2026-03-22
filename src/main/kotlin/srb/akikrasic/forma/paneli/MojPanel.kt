@@ -15,7 +15,4 @@ open class MojPanel : JPanel() {
     open fun ucitajtePodatkeUFormu(){
 
     }
-
-    open fun vratitePodatkeZaUcitavanjeUFormu() = PodaciZaUcitavanjeNaPanele.podaciSviPaneli.mojeSlanjeZahtevaPanel
-
 }
