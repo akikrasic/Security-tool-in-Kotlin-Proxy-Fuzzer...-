@@ -82,11 +82,7 @@ open class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zah
         c.weighty =0.45
         add(JScrollPane(zahtevTeloArea), c)
 
-        c.gridx = 1
-        c.gridy = 0
-        c.weighty = 1.0
-        c.gridheight = 3
-        add(JScrollPane(odgovorSveArea), c)
+        dodajteDeoDesno(c)
 
         dugmePosaljite.addActionListener {
             posaljiteDugmeAkcija()
@@ -118,6 +114,17 @@ open class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zah
         modelTabeleHederi.lista.add(HederIVrednost())
         zahtevTeloArea.text = String(zahtev.telo)
     }
+
+     fun dodajteDeoDesno(c: GridBagConstraints){
+        c.gridx = 1
+        c.gridy = 0
+        c.weighty = 1.0
+         c.weightx = 0.3
+        c.gridheight = 3
+        add(napraviteDeoDesno(), c)
+    }
+
+    open fun napraviteDeoDesno():JComponent = JScrollPane(odgovorSveArea)
 
     fun napravitePanelGore():JPanel{
         val panelGore = JPanel()
@@ -161,7 +168,7 @@ open class MojeSlanjeZahtevaPanel(val host:String = "", val zahtev: Zahtev = Zah
     }
 
     override fun ucitajtePodatkeUFormu() {
-        val podaci = vratitePodatkeZaUcitavanjeUFormu()
+        val podaci = PodaciZaUcitavanjeNaPanele.podaciSviPaneli.mojeSlanjeZahtevaPanel
         SwingUtilities.invokeLater {
             this.modelTabeleHederi.lista.clear()
             modelTabeleHederi.lista.addAll(podaci.hederi)

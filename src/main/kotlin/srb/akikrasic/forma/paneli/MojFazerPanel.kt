@@ -9,8 +9,8 @@ import kotlinx.coroutines.launch
 import srb.akikrasic.forma.Forma
 import srb.akikrasic.komunikacija.Komunikacija
 import srb.akikrasic.podaci.HederIVrednost
+import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciFazerPanel
 import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciZaUcitavanjeNaPanele
-import srb.akikrasic.ucitavanjezahtevaiodgovora.konstante.HederiNazivi
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
@@ -18,17 +18,20 @@ import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.JFileChooser
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
-class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
+class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     var dugmeUcitajteFajl = JButton("Учитајте фајл")
     var odabraniFajl = File("")
     val nisteOdabraliFajlNatpis = "Нисте одабрали фајл"
     val labelaOdabraniFajl = JLabel(nisteOdabraliFajlNatpis)
-    val dispatcher = Executors.newVirtualThreadPerTaskExecutor().asCoroutineDispatcher()
-    var kontekst = CoroutineScope(dispatcher)
+
+    val fazerOpcijePanel = FazerOpcijePanel(odgovorSveArea)
+
     var pokrenutKontekst = false
     val param = "#param"
 
@@ -36,6 +39,7 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     fun fajlNijePrazan () = odabraniFajl.path !=""
     val brojac = AtomicInteger(0)
     val brojac503 = AtomicInteger(0)
+
     override fun rasporedjivanjePanela() {
 
     }
@@ -80,6 +84,8 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     var ioOpseg = CoroutineScope(korutineOpseg)
     var drugiOpseg = CoroutineScope(Dispatchers.Default)
     var treciOpseg = CoroutineScope(korutineOpseg2)
+
+
 
     override fun posaljiteDugmeAkcija() {
         if(pokrenutKontekst){
@@ -203,7 +209,7 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
                 ensureActive()
                 //86000 za 100k
                 //363000 za veliki
-                    if(brojacZaPocetak.get()>8000) {//86000
+                    if(brojacZaPocetak.get()>15000) {//86000
 //                        println("Upaljen ti je brojac i krece od : ${brojacZaPocetak.get()}")
                 ioOpseg.launch { posaljitePorukuNaRedZaCitanje(it) }
                     }
@@ -218,10 +224,35 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     }
 
     override fun sacuvajtePodatke() {
-        PodaciZaUcitavanjeNaPanele.postaviteMojPonavljacPanel(izvucitePodatke())
+        PodaciZaUcitavanjeNaPanele.postaviteMojFazerPanel(izvucitePodatkeZaFazer())
     }
 
-    override fun vratitePodatkeZaUcitavanjeUFormu() = PodaciZaUcitavanjeNaPanele.podaciSviPaneli.mojPonavljacPanel
+    fun izvucitePodatkeZaFazer() = PodaciFazerPanel(
+        vratiteUrl(),
+        metodaKombo.selectedItem?.toString() ?: "",
+        vratiteHedere(),
+        vratiteTeloZahteva(),
+        fazerOpcijePanel.brojNitiVratiteVrednost(),
+        fazerOpcijePanel.uspesniStringoviVratiteString(),
+        fazerOpcijePanel.ponavljanjeStringVratiteString(),
+        fazerOpcijePanel.brojacZaPocetakVratiteVrednost()
+    )
+
+    override fun ucitajtePodatkeUFormu() {
+        val podaci = PodaciZaUcitavanjeNaPanele.podaciSviPaneli.mojFazerPanel
+        SwingUtilities.invokeLater {
+            this.modelTabeleHederi.lista.clear()
+            modelTabeleHederi.lista.addAll(podaci.hederi)
+            //TODO dodaj jos jedan heder ako treba
+            urlPolje.text = podaci.url
+            zahtevTeloArea.text = podaci.telo
+            metodaKombo.selectedItem = podaci.metoda
+            fazerOpcijePanel.postaviteBrojNiti(podaci.brojNiti)
+            fazerOpcijePanel.postaviteUspesanString(podaci.uspesanString)
+            fazerOpcijePanel.postaviteZaPonavljanjeString(podaci.ponavljanjeString)
+            fazerOpcijePanel.postaviteBrojacZaPocetak(podaci.brojacZaPocetak)
+        }
+    }
 
      fun posaljiteZahtevIVratiteRezultat(urlZamenjeni:String, metoda:String, hederiZamenjeni: List<HederIVrednost>, teloZamenjeno:String, poruka:String):String{
         var rezultat = "503"
@@ -240,6 +271,8 @@ class MojPonavljacPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
 
         return rezultat
     }
+
+    override fun napraviteDeoDesno(): JComponent  = fazerOpcijePanel
 
 
 }

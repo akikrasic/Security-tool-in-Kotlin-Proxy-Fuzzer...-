@@ -12,8 +12,12 @@ object PodaciZaUcitavanjeNaPanele {
 
     init {
         ucitajtePodatkeIzFajla()
-        podaciSviPaneli.mojPonavljacPanel.hederi.add(HederIVrednost())
-        podaciSviPaneli.mojeSlanjeZahtevaPanel.hederi.add(HederIVrednost())
+        if (podaciSviPaneli.mojFazerPanel.hederi.last().headerNaziv != "") {
+            podaciSviPaneli.mojFazerPanel.hederi.add(HederIVrednost())
+        }
+        if (podaciSviPaneli.mojeSlanjeZahtevaPanel.hederi.last().headerNaziv != "") {
+            podaciSviPaneli.mojeSlanjeZahtevaPanel.hederi.add(HederIVrednost())
+        }
     }
 
     fun ucitajtePodatkeIzFajla() {
@@ -31,26 +35,26 @@ object PodaciZaUcitavanjeNaPanele {
 
     }
 
-    fun postaviteMojPonavljacPanel(podaciPojedinacniPanel: PodaciPojedinacniPanel) {
-        podaciSviPaneli = PodaciSviPaneli(podaciSviPaneli.mojPonavljacPanel, podaciPojedinacniPanel)
+    fun postaviteMojFazerPanel(mojFazerPanel: PodaciFazerPanel) {
+        podaciSviPaneli = PodaciSviPaneli(podaciSviPaneli.mojeSlanjeZahtevaPanel, mojFazerPanel)
         sacuvajtePodatkeUFajl()
     }
 
     fun postaviteMojeSlanjeZahtevaPanel(pojedinacniPanel: PodaciPojedinacniPanel) {
-        podaciSviPaneli = PodaciSviPaneli(pojedinacniPanel, podaciSviPaneli.mojPonavljacPanel)
+        podaciSviPaneli = PodaciSviPaneli(pojedinacniPanel, podaciSviPaneli.mojFazerPanel)
         sacuvajtePodatkeUFajl()
     }
 
     fun enkodujtePodaci(podaciSvi: PodaciSviPaneli) =
         PodaciSviPaneli(
             enkodujtePodaciPojedinacniPanel(podaciSvi.mojeSlanjeZahtevaPanel),
-            enkodujtePodaciPojedinacniPanel(podaciSvi.mojPonavljacPanel)
+            enkodujtePodaciPojedinacniPanel(podaciSvi.mojFazerPanel)
         )
 
     fun dekodujtePodaci(podaciSvi: PodaciSviPaneli)=
         PodaciSviPaneli(
             dekodujtePodaciPojedinacniPanel(podaciSvi.mojeSlanjeZahtevaPanel),
-            dekodujtePodaciPojedinacniPanel(podaciSvi.mojPonavljacPanel)
+            dekodujtePodaciPojedinacniPanel(podaciSvi.mojFazerPanel)
         )
 
     fun enkodujtePodaciPojedinacniPanel(podaci: PodaciPojedinacniPanel): PodaciPojedinacniPanel =
@@ -70,6 +74,33 @@ object PodaciZaUcitavanjeNaPanele {
                 .toMutableList(),
             dekodujte(podaci.telo)
         )
+
+    fun enkodujtePodaciPojedinacniPanel(podaci: PodaciFazerPanel): PodaciFazerPanel =
+        PodaciFazerPanel(
+            enkodujte(podaci.url),
+            podaci.metoda,
+            podaci.hederi.map { HederIVrednost(enkodujte(it.headerNaziv), enkodujte(it.headerVrednost)) }
+                .toMutableList(),
+            enkodujte(podaci.telo),
+            podaci.brojNiti,
+            enkodujte(podaci.uspesanString),
+            enkodujte(podaci.ponavljanjeString),
+            podaci.brojacZaPocetak
+        )
+
+    fun dekodujtePodaciPojedinacniPanel(podaci: PodaciFazerPanel): PodaciFazerPanel =
+        PodaciFazerPanel(
+            dekodujte(podaci.url),
+            podaci.metoda,
+            podaci.hederi.map { HederIVrednost(dekodujte(it.headerNaziv), dekodujte(it.headerVrednost)) }
+                .toMutableList(),
+            dekodujte(podaci.telo),
+            podaci.brojNiti,
+            dekodujte(podaci.uspesanString),
+            dekodujte(podaci.ponavljanjeString),
+            podaci.brojacZaPocetak
+        )
+
 
 
     fun dekodujte(s: String) = String(Base64.decodeBase64(s.toByteArray()))

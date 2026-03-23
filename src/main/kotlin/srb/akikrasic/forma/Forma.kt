@@ -1,12 +1,11 @@
 package srb.akikrasic.forma
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import srb.akikrasic.forma.paneli.HttpKomunikacijaPanel
 import srb.akikrasic.forma.paneli.MojPanel
-import srb.akikrasic.forma.paneli.MojPonavljacPanel
+import srb.akikrasic.forma.paneli.MojFazerPanel
 import srb.akikrasic.forma.paneli.MojeSlanjeZahtevaPanel
 import srb.akikrasic.forma.paneli.PrenosInformacijaZaPretragu
 import srb.akikrasic.forma.paneli.WSPanel
@@ -68,7 +67,7 @@ class Forma : JFrame() {
             MojeSlanjeZahtevaPanel()
         }
         dodajteActionListenerNaMenuItemiNamestiteContentPanel(glavniMeni, mojPonavljac){
-            MojPonavljacPanel(this)
+            MojFazerPanel(this)
         }
         this.jMenuBar = bar
 
