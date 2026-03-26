@@ -1,28 +1,14 @@
 package srb.akikrasic.forma.paneli
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
 import srb.akikrasic.forma.Forma
-import srb.akikrasic.komunikacija.Komunikacija
-import srb.akikrasic.podaci.HederIVrednost
+import srb.akikrasic.logika.FazerLogika
 import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciFazerPanel
 import srb.akikrasic.podaci.ucitavanjepodatakaforme.PodaciZaUcitavanjeNaPanele
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
 import java.io.File
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
-import javax.swing.JButton
-import javax.swing.JComponent
-import javax.swing.JFileChooser
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.SwingUtilities
+import javax.swing.*
 
 class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     var dugmeUcitajteFajl = JButton("Учитајте фајл")
@@ -33,12 +19,11 @@ class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
     val fazerOpcijePanel = FazerOpcijePanel(odgovorSveArea)
 
     var pokrenutKontekst = false
-    val param = "#param"
+    var fazerLogika: FazerLogika? = null
 
 
     fun fajlNijePrazan () = odabraniFajl.path !=""
-    val brojac = AtomicInteger(0)
-    val brojac503 = AtomicInteger(0)
+
 
     override fun rasporedjivanjePanela() {
 
@@ -76,49 +61,20 @@ class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
         super.rasporedjivanjePanela()
     }
 
-    val brojNiti = 20
-    var executor1 = Executors.newFixedThreadPool(brojNiti)//.newVirtualThreadPerTaskExecutor()//Executors.newVirtualThreadPerTaskExecutor()// Executors.newFixedThreadPool(20)
-    var executor2 = Executors.newFixedThreadPool(brojNiti)//Executors.newVirtualThreadPerTaskExecutor()
-    var korutineOpseg = executor1.asCoroutineDispatcher()
-    var korutineOpseg2 = executor2.asCoroutineDispatcher()
-    var ioOpseg = CoroutineScope(korutineOpseg)
-    var drugiOpseg = CoroutineScope(Dispatchers.Default)
-    var treciOpseg = CoroutineScope(korutineOpseg2)
-
-
-
     override fun posaljiteDugmeAkcija() {
         if(pokrenutKontekst){
             zaustaviteSlanje()
-
+            pokrenutKontekst = false
         }
         else{
             zapocniteSlanje()
+            pokrenutKontekst = true
         }
     }
-
-    fun ugasiteSveIInicijalizujte(){
-        treciOpseg.cancel()
-        drugiOpseg.cancel()
-        korutineOpseg.cancel()
-        korutineOpseg2.cancel()
-        ioOpseg.cancel()
-
-        executor1 = Executors.newFixedThreadPool(brojNiti)//.newVirtualThreadPerTaskExecutor()//Executors.newVirtualThreadPerTaskExecutor()// Executors.newFixedThreadPool(20)
-        executor2  = Executors.newFixedThreadPool(brojNiti)//newVirtualThreadPerTaskExecutor()
-        korutineOpseg = executor1.asCoroutineDispatcher()
-        korutineOpseg2 = executor2.asCoroutineDispatcher()
-
-        pokrenutKontekst = false
-        drugiOpseg = CoroutineScope(Dispatchers.Default)
-        ioOpseg = CoroutineScope(korutineOpseg)
-        treciOpseg = CoroutineScope(korutineOpseg2)
-    }
     fun zaustaviteSlanje(){
-       ugasiteSveIInicijalizujte()
-
         dugmePosaljite.text="Покрените"
         odabraniFajl = File(odabraniFajl.absolutePath)
+        fazerLogika?.ugasiteSveIInicijalizujte()
         println()
         println("ZAUSTAVITE")
         println()
@@ -128,99 +84,25 @@ class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
 
         if(fajlNijePrazan()) {
             zapocniteSlanjeOsveziteFormu()
-            pokrenutKontekst = true
-            pokreniteUcitavanjeIzFajla()
-            pokreniteCitanjeIzRedaiSlanje()
+            fazerLogika = FazerLogika(vratiteUrl(),
+                metodaKombo.selectedItem?.toString()?:"",
+             vratiteHedere(),
+            vratiteTeloZahteva(),
+                odabraniFajl,
+                fazerOpcijePanel.brojNitiVratiteVrednost(),
+                 fazerOpcijePanel.brojacZaPocetakVratiteVrednost(),
+                fazerOpcijePanel.uspesniStringoviVratiteString(),
+                fazerOpcijePanel.ponavljanjeStringVratiteString(),
+                this)
+
+            fazerLogika?.pokreniteUcitavanjeIzFajla()
+            fazerLogika?.pokreniteCitanjeIzRedaiSlanje()
 
         }
     }
     fun zapocniteSlanjeOsveziteFormu(){
         odgovorSveArea.text=""
         dugmePosaljite.text = "Зауставите"
-    }
-
-    fun pokreniteCitanjeIzRedaiSlanje(){
-        val url = vratiteUrl()
-        val metoda = metodaKombo.selectedItem?.toString()?:""
-        val hederi = vratiteHedere()
-        val telo = vratiteTeloZahteva()
-        drugiOpseg.launch {
-            while (true) {
-                ensureActive()
-                val poruka = Komunikacija.kanalZaKomunikacijuMojPonavljac.receive()
-                 posaljitePorukuPutemHttpaIObraditeRezultat(url, metoda, hederi, telo, poruka)
-                //}
-
-            }
-        }
-    }
-
-     fun posaljitePorukuPutemHttpaIObraditeRezultat(url:String, metoda:String, hederi:List<HederIVrednost>, telo:String, poruka:String){
-        ioOpseg.launch { //radelo je s treciOpseg
-            println("${brojac.addAndGet(1)}. ${poruka}")
-            val urlZamenjeni = zamenite(url, poruka)
-            val hederiZamenjeni =  hederi.filter{it.headerNaziv!=""}
-                .map { HederIVrednost(
-                    zamenite(it.headerNaziv, poruka),
-                    zamenite(it.headerVrednost, poruka)
-                )
-
-                }
-            val teloZamenjeno = zamenite(telo, poruka)
-            val rezultat = posaljiteZahtevIVratiteRezultat(urlZamenjeni, metoda, hederiZamenjeni, teloZamenjeno, poruka)
-            proveraDaLiJeNeuspesan(urlZamenjeni, hederiZamenjeni, teloZamenjeno, rezultat)
-            proveraDaLiJeUspesan(rezultat, poruka)
-
-        }
-    }
-
-    fun proveraDaLiJeNeuspesan(urlZamenjeni: String, hederiZamenjeni: List<HederIVrednost>, teloZamenjeno: String, rezultat:String){
-        if( rezultat.contains("401")) {
-            println(
-                """
-                            ${urlZamenjeni}
-                            ${hederiZamenjeni}
-                            ${teloZamenjeno}
-                           
-                            Rezultat: 
-                            $rezultat
-                           
-                        """.trimIndent()
-            )
-        }
-    }
-    fun proveraDaLiJeUspesan(rezultat:String, poruka:String){
-        if( rezultat.contains("200")||rezultat.contains("201")|| rezultat.contains("FLAG")) {
-            println("PRONADJEN JE ${poruka}")
-            drugiOpseg.launch{
-                odgovorSveArea.append("успешно је прошао: $poruka  а резултат је: \n   $rezultat\n")
-                println(rezultat)
-                println("Шифра је ${poruka}")
-                //System.exit(0)
-                ugasiteSveIInicijalizujte()
-
-            }}
-    }
-    fun pokreniteUcitavanjeIzFajla(){
-        treciOpseg.launch {
-            ensureActive()
-            val brojacZaPocetak = AtomicInteger()
-            odabraniFajl.forEachLine {
-                ensureActive()
-                //86000 za 100k
-                //363000 za veliki
-                    if(brojacZaPocetak.get()>15000) {//86000
-//                        println("Upaljen ti je brojac i krece od : ${brojacZaPocetak.get()}")
-                ioOpseg.launch { posaljitePorukuNaRedZaCitanje(it) }
-                    }
-                brojacZaPocetak.incrementAndGet()
-
-            }
-        }
-    }
-    fun zamenite(s:String, zaZamenu:String) = s.replace(param,zaZamenu)
-    suspend fun posaljitePorukuNaRedZaCitanje(poruka:String){
-        Komunikacija.kanalZaKomunikacijuMojPonavljac.send(poruka.trim())
     }
 
     override fun sacuvajtePodatke() {
@@ -254,23 +136,13 @@ class MojFazerPanel(val forma: Forma): MojeSlanjeZahtevaPanel() {
         }
     }
 
-     fun posaljiteZahtevIVratiteRezultat(urlZamenjeni:String, metoda:String, hederiZamenjeni: List<HederIVrednost>, teloZamenjeno:String, poruka:String):String{
-        var rezultat = "503"
-        while( rezultat.contains("503")){
-            if(rezultat!="503"){
-                println("503 rezultat po ${brojac503.incrementAndGet()}. put  idemo da ponovimo poruku $poruka")
 
-            }
-            rezultat = slanjeZahteva.slanjeZahteva(
-                urlZamenjeni,
-                metoda,
-                hederiZamenjeni,
-                teloZamenjeno
-            )
+    fun postaviteTekstUOdgovorSveAreu(tekst:String){
+        SwingUtilities.invokeLater {
+            odgovorSveArea.append(tekst)
         }
-
-        return rezultat
     }
+
 
     override fun napraviteDeoDesno(): JComponent  = fazerOpcijePanel
 
