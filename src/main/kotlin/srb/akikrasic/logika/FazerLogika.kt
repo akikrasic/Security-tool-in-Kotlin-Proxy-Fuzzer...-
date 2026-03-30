@@ -169,7 +169,7 @@ class FazerLogika(val url:String,
                 println(rezultat)
                 println("Шифра је ${poruka}")
                 //System.exit(0)
-                ugasiteSveIInicijalizujte()
+                //ugasiteSveIInicijalizujte()
 
             }
             return true
