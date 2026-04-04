@@ -165,7 +165,7 @@ class FazerLogika(val url:String,
         if( proveriteDaLiRezultatSadrzi(rezultat, uspesniStringoviLista)){// rezultat.contains("200")||rezultat.contains("201")|| rezultat.contains("FLAG")) {
             println("PRONADJEN JE ${poruka}")
             drugiOpseg.launch{
-                fazerPanel.postaviteTekstUOdgovorSveAreu("успешно је прошао: $poruka  а резултат је: \n   $rezultat\n")
+                fazerPanel.postaviteTekstUOdgovorSveAreu("успешно је прошао: $poruka  а резултат је: \n   $rezultat\n\n\n")
                 println(rezultat)
                 println("Шифра је ${poruka}")
                 //System.exit(0)

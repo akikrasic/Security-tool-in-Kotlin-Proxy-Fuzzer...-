@@ -12,6 +12,7 @@ class SlanjeHttpZahteva {
     val zabranjeniHederi = setOf("Host", "Content-Length", "Connection", "")
 
     fun slanjeZahteva(url:String, metoda:String, hederi: List<HederIVrednost>, body:String ):String{
+        try {
         val client = HttpClient.newHttpClient()
 
         val zahtevIzgradjivac = HttpRequest.newBuilder()
@@ -21,10 +22,15 @@ class SlanjeHttpZahteva {
         hederi.filter{!(it.headerNaziv in zabranjeniHederi)}.forEach {
             zahtevIzgradjivac.header(it.headerNaziv, it.headerVrednost)
         }
-        val odgovor = client.send(zahtevIzgradjivac.build(), HttpResponse.BodyHandlers.ofString())
-        client.close()
-        return pretvaranjeOdgovoraUString(odgovor)
 
+            val odgovor = client.send(zahtevIzgradjivac.build(), HttpResponse.BodyHandlers.ofString())
+            client.close()
+            return pretvaranjeOdgovoraUString(odgovor)
+        }
+        catch(e: Exception){
+            e.printStackTrace()
+            return "Дошло је до грешке"
+        }
     }
 
     fun pretvaranjeOdgovoraUString(response:HttpResponse<String>) = """
